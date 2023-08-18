@@ -1,0 +1,277 @@
+import time
+import csv
+import pandas as pd
+import numpy as np
+import talib
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, roc_auc_score, roc_curve
+from sklearn.pipeline import Pipeline
+from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import RocCurveDisplay
+
+
+
+print('           Glaxosmithcline')
+df_Glaxo.head(11)
+print('           Cadbury Plc')
+df_Cadbury.head(11)
+print('           HoneyWell FlourMills')
+df_Honeywell.head(11)
+print('           Lafarge')
+df_Lafarge.head(11)
+print('           Nigerian Breweries')
+df_NigBrew.head(11)
+# Visualize trends
+plt.figure(figsize=(12, 6))
+plt.plot(df_Glaxo['Date'], df_Glaxo['Close'], label='Glaxo')
+plt.plot(df_Cadbury['Date'], df_Cadbury['Close'], label='Cadbury')
+plt.plot(df_Honeywell['Date'], df_Honeywell['Close'], label='Honeywell')
+plt.plot(df_Lafarge['Date'], df_Lafarge['Close'], label='Lafarge')
+plt.plot(df_NigBrew['Date'], df_NigBrew['Close'], label='NigBrewery')
+plt.xlabel('Date')
+plt.ylabel('Stock Close Price')
+plt.title('Stock Prices Over Time')
+plt.legend()
+plt.show()
+# From the plot, we can see that the closing stock prices have dropped over time, with some fluctuations.
+
+# We can use a combination chart to visualize the stock prices with the volume traded.
+
+# Create a combination plot of stock prices and volume traded for Glaxo
+plt.figure(figsize=(12,6))
+sns.lineplot(x='Date', y='Close', data=df_Glaxo, color='b')
+sns.lineplot(x='Date', y='Volume', data=df_Glaxo, color='g', alpha=0.5)
+plt.title('Glaxo Stock Prices with Volume Traded')
+plt.xlabel('Year')
+plt.ylabel('Price/Volume')
+plt.legend(['Closing Price', 'Volume'])
+plt.show()
+# Create a combination plot of stock prices and volume traded for Cadbury
+plt.figure(figsize=(12,6))
+sns.lineplot(x='Date', y='Close', data=df_Cadbury, color='b')
+sns.lineplot(x='Date', y='Volume', data=df_Cadbury, color='g', alpha=0.5)
+plt.title('Cadbury Stock Prices with Volume Traded')
+plt.xlabel('Year')
+plt.ylabel('Price/Volume')
+plt.legend(['Closing Price', 'Volume'])
+plt.show()
+
+# Create a combination plot of stock prices and volume traded for HoneyWell
+plt.figure(figsize=(12,6))
+sns.lineplot(x='Date', y='Close', data=df_Honeywell, color='b')
+sns.lineplot(x='Date', y='Volume', data=df_Honeywell, color='g', alpha=0.5)
+plt.title('HoneyWell Stock Prices with Volume Traded')
+plt.xlabel('Year')
+plt.ylabel('Price/Volume')
+plt.legend(['Closing Price', 'Volume'])
+plt.show()
+
+# Create a combination plot of stock prices and volume traded for Lafarge
+plt.figure(figsize=(12,6))
+sns.lineplot(x='Date', y='Close', data=df_Lafarge, color='b')
+sns.lineplot(x='Date', y='Volume', data=df_Lafarge, color='g', alpha=0.5)
+plt.title('Lafarge Stock Prices with Volume Traded')
+plt.xlabel('Year')
+plt.ylabel('Price/Volume')
+plt.legend(['Closing Price', 'Volume'])
+plt.show()
+
+# Create a combination plot of stock prices and volume traded for Nigerian Breweries
+plt.figure(figsize=(12,6))
+sns.lineplot(x='Date', y='Close', data=df_NigBrew, color='b')
+sns.lineplot(x='Date', y='Volume', data=df_NigBrew, color='g', alpha=0.5)
+plt.title('Nigerian Breweries Stock Prices with Volume Traded')
+plt.xlabel('Year')
+plt.ylabel('Price/Volume')
+plt.legend(['Closing Price', 'Volume'])
+plt.show()
+
+
+
+
+# Define the list of prediction days
+prediction_days = [1, 60, 90]
+results = []  # Initialize an empty list for storing results
+
+# List of file paths for all companies
+file_paths = [
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Glaxo.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Cadbury.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\HoneyWell.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Lafarge.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Nigerian Breweries.csv"
+]
+
+# List of company names
+company_stocks = ['Glaxosmithkline', 'Cadbury', 'HoneyWell', 'Lafarge', 'Nigerian Breweries']
+
+for file_path, company_stock in zip(file_paths, company_stocks):
+    # Step 2: Load the stock data
+    stock_data = pd.read_csv(file_path)
+    # Step 3: Convert columns to numeric arrays
+    stock_data['Close'] = stock_data['Close'].astype(float)
+    stock_data['High'] = stock_data['High'].astype(float)
+    stock_data['Low'] = stock_data['Low'].astype(float)
+    stock_data['Volume'] = stock_data['Volume'].astype(float)
+    # Step 4: Calculate the technical indicators
+    stock_data['RSI'] = talib.RSI(stock_data['Close'])
+    stock_data['SO'] = talib.STOCH(stock_data['High'], stock_data['Low'], stock_data['Close'])[0]
+    stock_data['W%R'] = talib.WILLR(stock_data['High'], stock_data['Low'], stock_data['Close'])
+    stock_data['MACD'], _, _ = talib.MACD(stock_data['Close'])
+    stock_data['PROC'] = talib.ROC(stock_data['Close'])
+    stock_data['OBV'] = talib.OBV(stock_data['Close'], stock_data['Volume'])
+    # Step 5: Calculate the target variable (Trend) using exponential smoothing
+    stock_data['Trend'] = stock_data['Close'].ewm(alpha=0.75, adjust=False).mean().diff()
+    stock_data['Trend'] = np.where(stock_data['Trend'] > 0, 1, 0)
+
+    # Step 6: Define the features and target variable
+    features = ['RSI', 'SO', 'W%R', 'MACD', 'PROC', 'OBV']
+    target = 'Trend'
+    
+    X = stock_data[features]
+    y = stock_data[target]
+
+    # Split the data into train and test sets (using shuffle=False to maintain temporal order)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=False)
+
+    # Step 7: Preprocess the data
+    pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+
+    X_train = pipeline.fit_transform(X_train)
+    X_test = pipeline.transform(X_test)
+
+    # Step 8: Iterate over the prediction days
+    for prediction_day in prediction_days:
+        # Filter the data for the current prediction day
+        X_test_filtered = X_test[prediction_day:]
+        y_test_filtered = y_test[prediction_day:]
+
+        # Train the models
+        rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+        svm_model = SVC(kernel='rbf', probability=True, random_state=42)
+
+        rf_model.fit(X_train, y_train)
+        svm_model.fit(X_train, y_train)
+        
+        start_time = time.time()
+        rf_model.fit(X_train, y_train)
+        rf_train_time = time.time() - start_time
+        svm_model.fit(X_train, y_train)
+        svm_train_time = time.time() - start_time
+
+        # Calculate the model scores
+        rf_train_score = rf_model.score(X_train, y_train)
+        svm_train_score = svm_model.score(X_train, y_train)
+        
+        rf_score = rf_model.score(X_test_filtered, y_test_filtered)
+        svm_score = svm_model.score(X_test_filtered, y_test_filtered)
+
+        # Make predictions
+        rf_predictions = rf_model.predict(X_test_filtered)
+        svm_predictions = svm_model.predict(X_test_filtered)
+
+        # Evaluate the models
+        rf_report = classification_report(y_test_filtered, rf_predictions)
+        svm_report = classification_report(y_test_filtered, svm_predictions)
+
+        rf_accuracy = accuracy_score(y_test_filtered, rf_predictions)
+        svm_accuracy = accuracy_score(y_test_filtered, svm_predictions)
+
+        rf_confusion_matrix = confusion_matrix(y_test_filtered, rf_predictions)
+        svm_confusion_matrix = confusion_matrix(y_test_filtered, svm_predictions)
+
+        rf_roc_auc = roc_auc_score(y_test_filtered, rf_model.predict_proba(X_test_filtered)[:, 1])
+        svm_roc_auc = roc_auc_score(y_test_filtered, svm_model.predict_proba(X_test_filtered)[:, 1])
+        
+        rf_specificity = rf_confusion_matrix[0, 0] / (rf_confusion_matrix[0, 0] + rf_confusion_matrix[0, 1])
+        svm_specificity = svm_confusion_matrix[0, 0] / (svm_confusion_matrix[0, 0] + svm_confusion_matrix[0, 1])
+        
+        # Calculate and store the evaluation metrics
+        results.append({
+            'Company': company_stock,
+            'Prediction Day': prediction_day,
+            'Train Time': rf_train_time,
+            'Random Forest Score': rf_score,
+            'Random Forest Accuracy': rf_accuracy,
+            'Random Forest Specificity': rf_specificity,
+            'Random Forest ROC AUC': rf_roc_auc,
+            'Random Forest Classification Report': rf_report,
+            'Random Forest Confusion Matrix': rf_confusion_matrix,
+            'Train Time': svm_train_time,
+            'SVM Score': svm_score,
+            'SVM Accuracy': svm_accuracy,
+            'SVM Specificity': svm_specificity,
+            'SVM ROC AUC': svm_roc_auc,
+            'SVM Classification Report': svm_report,
+            'SVM Confusion Matrix': svm_confusion_matrix
+        })
+
+               
+        # Plot ROC curves
+        rf_fpr, rf_tpr, _ = roc_curve(y_test_filtered, rf_model.predict_proba(X_test_filtered)[:, 1])
+        svm_fpr, svm_tpr, _ = roc_curve(y_test_filtered, svm_model.predict_proba(X_test_filtered)[:, 1])
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(rf_fpr, rf_tpr, label='Random Forest (AUC = %0.2f)' % rf_roc_auc)
+        plt.plot(svm_fpr, svm_tpr, label='SVM (AUC = %0.2f)' % svm_roc_auc)
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(f'ROC Curve - {company_stock} (Prediction Day: {prediction_day})')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        # Print the results
+        print(f'Company: {company_stock}')
+        print(f'Prediction Day: {prediction_day}')
+        print('Random Forest:')
+        print("Training Accuracy:", rf_train_score)
+        print("Testing Accuracy:", rf_score)
+        print(f'Training time: {rf_train_time}',"seconds")
+        #print(f'Score: {rf_score}')
+        print(f'Accuracy: {rf_accuracy}')
+        print(f'Specificity: {rf_specificity}')
+        print(f'ROC AUC: {rf_roc_auc}')
+        print(f'Classification Report:\n{rf_report}')
+        print(f'Confusion Matrix:\n{rf_confusion_matrix}')
+        print('SVM:')
+        print("Training Accuracy:", svm_train_score)
+        print("Testing Accuracy:", svm_score)
+        print(f'Training time: {svm_train_time}',"seconds")
+        #print(f'Score: {svm_score}')
+        print(f'Accuracy: {svm_accuracy}')
+        print(f'Specificity: {svm_specificity}')
+        print(f'ROC AUC: {svm_roc_auc}')
+        print(f'Classification Report:\n{svm_report}')
+        print(f'Confusion Matrix:\n{svm_confusion_matrix}')
+        print('------------------------------------------')
+        
+        
+        # Plot the ROC Curve for RF
+        rf_display = RocCurveDisplay(fpr=rf_fpr, tpr=rf_tpr, roc_auc=rf_roc_auc, estimator_name=f'RF (Prediction Day: {prediction_day}, {company_stock})')
+        rf_display.plot()
+        
+        # Random Line (Baseline)
+        plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random')
+        
+        # Plot the ROC Curve for SVM
+        svm_display = RocCurveDisplay(fpr=svm_fpr, tpr=svm_tpr, roc_auc=svm_roc_auc, estimator_name=f'SVM (Prediction Day: {prediction_day}, {company_stock})')
+        svm_display.plot()
+        plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random')
+        
+        
+            
+# Save the results to a CSV file
+results_df = pd.DataFrame(results)
+results_df.to_csv('prediction_results.csv', index=False)
