@@ -16,6 +16,14 @@ import seaborn as sns
 from sklearn.metrics import RocCurveDisplay
 
 
+# List of file paths for all companies
+file_paths = [
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Glaxo.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Cadbury.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\HoneyWell.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Lafarge.csv",
+    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Nigerian Breweries.csv"
+]
 
 print('           Glaxosmithcline')
 df_Glaxo.head(11)
@@ -94,19 +102,9 @@ plt.show()
 
 
 
-
 # Define the list of prediction days
 prediction_days = [1, 60, 90]
 results = []  # Initialize an empty list for storing results
-
-# List of file paths for all companies
-file_paths = [
-    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Glaxo.csv",
-    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Cadbury.csv",
-    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\HoneyWell.csv",
-    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Lafarge.csv",
-    r"C:\Users\Temitope.Ola\Downloads\Dissertation\Datasets\Nigerian Breweries.csv"
-]
 
 # List of company names
 company_stocks = ['Glaxosmithkline', 'Cadbury', 'HoneyWell', 'Lafarge', 'Nigerian Breweries']
